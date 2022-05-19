@@ -125,6 +125,9 @@ else:
 ad_files = []
 obj_files = []
 
+
+sys.argv.append("--minimal")
+
 # Special flag to build without portaudio, portmidi and liblo deps.
 if "--minimal" in sys.argv:
     sys.argv.remove("--minimal")
@@ -320,8 +323,7 @@ for extension_name, extra_macros in zip(extension_names, extra_macros_per_extens
             extension_name,
             source_files,
             libraries=libraries,
-            library_dirs=library_dirs,
-            include_dirs=include_dirs,
+            include_dirs=["include"],
             extra_compile_args=extra_compile_args,
             define_macros=macros + extra_macros,
         )

@@ -113,7 +113,7 @@ typedef Py_ssize_t T_SIZE_T;
 
 #define MYSQRT sqrtf
 #define MYLOG logf
-#define MYLOG2 log2f
+#define MYLOG2(x) (logf(x)/logf(2))
 #define MYLOG10 log10f
 #define MYCOS cosf
 #define MYSIN sinf

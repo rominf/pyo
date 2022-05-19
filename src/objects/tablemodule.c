@@ -32,11 +32,6 @@
 #include "wind.h"
 #include "fft.h"
 
-#if !defined(_WIN32) && !defined(_WIN64)
-#include <fcntl.h>
-#include <sys/mman.h>
-#endif
-
 #include "tablemodule.h"
 
 /*************************/
@@ -8034,13 +8029,6 @@ SharedTable_clear(SharedTable *self)
 static void
 SharedTable_dealloc(SharedTable* self)
 {
-#if !defined(_WIN32) && !defined(_WIN64)
-    close(self->fd);
-
-    if (self->create)
-        shm_unlink(self->name);
-
-#endif
     SharedTable_clear(self);
     Py_TYPE(self->tablestream)->tp_free((PyObject*)self->tablestream);
     Py_TYPE(self)->tp_free((PyObject*)self);
@@ -8062,64 +8050,6 @@ SharedTable_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
     if (! PyArg_ParseTupleAndKeywords(args, kwds, "sin", kwlist, &self->name, &self->create, &self->size))
         Py_RETURN_NONE;
-
-#if !defined(_WIN32) && !defined(_WIN64)
-
-    /* Open shared memory object. */
-    if (self->create)
-    {
-        self->fd = shm_open(self->name, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-
-        if (self->fd == -1)
-        {
-            PySys_WriteStdout("SharedTable: failed to create shared memory.\n");
-            Py_RETURN_NONE;
-        }
-
-        if (ftruncate(self->fd, sizeof(MYFLT) * (self->size + 1)) == -1)
-        {
-            PySys_WriteStdout("SharedTable: failed to truncate shared memory.\n");
-            close(self->fd);
-            shm_unlink(self->name);
-            Py_RETURN_NONE;
-        }
-    }
-    else
-    {
-        self->fd = shm_open(self->name, O_RDWR, 0);
-
-        if (self->fd == -1)
-        {
-            PySys_WriteStdout("SharedTable: failed to create shared memory.\n");
-            Py_RETURN_NONE;
-        }
-    }
-
-    /* Map shared memory object. */
-    self->data = mmap(NULL, sizeof(MYFLT) * (self->size + 1),
-                      PROT_READ | PROT_WRITE, MAP_SHARED, self->fd, 0);
-
-    if (self->data == MAP_FAILED)
-    {
-        PySys_WriteStdout("SharedTable: failed to mmap shared memory.\n");
-        close(self->fd);
-
-        if (self->create)
-            shm_unlink(self->name);
-
-        Py_RETURN_NONE;
-    }
-
-    /* Initialize the memory. */
-    if (self->create)
-    {
-        for (i = 0; i <= self->size; i++)
-        {
-            self->data[i] = 0.0;
-        }
-    }
-
-#endif
 
     TableStream_setSize(self->tablestream, self->size);
     TableStream_setData(self->tablestream, self->data);
